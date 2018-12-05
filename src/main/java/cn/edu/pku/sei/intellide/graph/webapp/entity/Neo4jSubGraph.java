@@ -11,10 +11,16 @@ public class Neo4jSubGraph {
 
     private final List<Neo4jRelation> relationships = new ArrayList<>();
 
-    public Neo4jSubGraph(List<Long> nodeIds, List<Long> relIds, GraphDatabaseService db){
-        for (long node:nodeIds)
+    private String cypher = "";
+
+    public Neo4jSubGraph() {
+
+    }
+
+    public Neo4jSubGraph(List<Long> nodeIds, List<Long> relIds, GraphDatabaseService db) {
+        for (long node : nodeIds)
             nodes.add(Neo4jNode.get(node, db));
-        for (long edge:relIds)
+        for (long edge : relIds)
             relationships.add(Neo4jRelation.get(edge, db));
     }
 
@@ -24,6 +30,14 @@ public class Neo4jSubGraph {
 
     public List<Neo4jRelation> getRelationships() {
         return relationships;
+    }
+
+    public String getCypher() {
+        return cypher;
+    }
+
+    public void setCypher(String cypher) {
+        this.cypher = cypher;
     }
 
 }
