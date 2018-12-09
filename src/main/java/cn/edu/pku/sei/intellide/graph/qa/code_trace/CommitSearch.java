@@ -11,6 +11,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -49,8 +50,17 @@ public class CommitSearch {
                     result.add(Neo4jNode.get(otherNode.getId(),db));
                 }
             }
+            result.sort(new Comparator<Neo4jNode>() {
+                @Override
+                public int compare(Neo4jNode o1, Neo4jNode o2) {
+                    String date1=db.getNodeById(o1.getId()).getProperty("commitTime").toString();
+                    String date2=db.getNodeById(o2.getId()).getProperty("commitTime").toString();
+                    return date2.compareTo(date1);
+                }
+            });
             tx.success();
         }
+
         return result;
     }
 
@@ -61,6 +71,4 @@ public class CommitSearch {
             System.out.println(n.getLabel());
         }
     }
-
-
 }
