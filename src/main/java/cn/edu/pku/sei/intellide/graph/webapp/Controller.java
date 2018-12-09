@@ -1,6 +1,8 @@
 package cn.edu.pku.sei.intellide.graph.webapp;
 
 import cn.edu.pku.sei.intellide.graph.qa.code_search.CodeSearch;
+import cn.edu.pku.sei.intellide.graph.qa.code_trace.CommitSearch;
+import cn.edu.pku.sei.intellide.graph.qa.code_trace.IssueSearch;
 import cn.edu.pku.sei.intellide.graph.qa.doc_search.DocSearch;
 import cn.edu.pku.sei.intellide.graph.qa.nl_query.NLQueryEngine;
 import cn.edu.pku.sei.intellide.graph.webapp.entity.*;
@@ -35,6 +37,9 @@ public class Controller {
     Map<String, DocSearch> docSearchMap = new LinkedHashMap<>();
     Map<String, NavResult> navResultMap = new LinkedHashMap<>();
     Map<String, GraphDatabaseService> dbMap = new LinkedHashMap<>();
+    Map<String, IssueSearch> issueSearchMap  = new LinkedHashMap<>();
+    Map<String, CommitSearch> commitSearchMap  = new LinkedHashMap<>();
+
     CodeSearch codeSearch = null;
     @Autowired
     private Context context;
@@ -108,6 +113,24 @@ public class Controller {
     synchronized public Neo4jNode node(long id, String project) {
         return Neo4jNode.get(id, getDb(project));
     }
+
+    @RequestMapping(value = "/issueSearch", method = {RequestMethod.GET, RequestMethod.POST})
+    synchronized public List<Neo4jNode> issueSearch(String query, String project) {
+        if (!issueSearchMap.containsKey(project)) {
+            issueSearchMap.put(project,new IssueSearch(getDb(project)));
+        }
+        IssueSearch issueSearch = issueSearchMap.get(project);
+        return issueSearch.searchIssueNodeByClassName(query);
+    }
+    @RequestMapping(value = "/commitSearch", method = {RequestMethod.GET, RequestMethod.POST})
+    synchronized public List<Neo4jNode> commitSearch(String query, String project) {
+        if (!commitSearchMap.containsKey(project)) {
+            commitSearchMap.put(project,new CommitSearch(getDb(project)));
+        }
+        CommitSearch commitSearch = commitSearchMap.get(project);
+        return commitSearch.searchCommitNodeByClassName(query);
+    }
+
 
     private GraphDatabaseService getDb(String project) {
         if (!dbMap.containsKey(project)) {

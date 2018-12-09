@@ -19,4 +19,8 @@ public class MyNode {
         this.father = null;
         weight = 0;
     }
+    public long getId(){
+        return id;
+    }
+
 }
