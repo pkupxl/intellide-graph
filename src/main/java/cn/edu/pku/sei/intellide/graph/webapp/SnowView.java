@@ -14,8 +14,8 @@ import java.io.File;
 public class SnowView {
 
     public static void main(String[] args) {
-        SpringApplication.run(SnowView.class, args);
-       /* System.setProperty("file.encoding", "utf-8");
+  //      SpringApplication.run(SnowView.class, args);
+        System.setProperty("file.encoding", "utf-8");
         CmdOption option = new CmdOption();
         CmdLineParser parser = new CmdLineParser(option);
 
@@ -40,7 +40,7 @@ public class SnowView {
             System.out.println("Error in main: " + e.getMessage());
             e.printStackTrace();
             return;
-        }*/
+        }
 
     }
 

@@ -11,12 +11,14 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.io.ByteArrayOutputStream;
 
 public class GitExtractor extends KnowledgeExtractor {
 
@@ -97,7 +99,13 @@ public class GitExtractor extends KnowledgeExtractor {
             newTreeIter.reset(reader, head);
             List<DiffEntry> diffs = git.diff().setNewTree(newTreeIter).setOldTree(oldTreeIter).call();
             for (int k = 0; k < diffs.size(); k++) {
-                diffStrs.add(diffs.get(k).getChangeType().name() + " " + diffs.get(k).getOldPath() + " to " + diffs.get(k).getNewPath());
+                String diffMessage="";
+                if(!diffs.get(k).getOldPath().equals("/dev/null")){
+                    diffMessage=getDiffMessage(head,old,diffs.get(k).getOldPath(),repository,git);
+                } else if(!diffs.get(k).getNewPath().equals("/dev/null")){
+                    diffMessage=getDiffMessage(head,old,diffs.get(k).getNewPath(),repository,git);
+                }
+                diffStrs.add(diffs.get(k).getChangeType().name() + " " + diffs.get(k).getOldPath() + " to " + diffs.get(k).getNewPath() + " :: "+diffMessage);
             }
         }
         map.put(DIFF_SUMMARY, String.join("\n", diffStrs));
@@ -132,4 +140,79 @@ public class GitExtractor extends KnowledgeExtractor {
             this.getInserter().createRelationship(commitNodeId, personMap.get(personStr), COMMITTER, new HashMap<>());
     }
 
+
+    public static String getDiffMessage(ObjectId newId, ObjectId oldId, String filePath, Repository repository,Git git){
+        String result=null;
+        try (ObjectReader reader = repository.newObjectReader()) {
+            CanonicalTreeParser old = new CanonicalTreeParser();
+            ObjectId oldTreeId = repository.resolve((oldId == null? newId.getName() + "^" : oldId.getName())+ "^{tree}");
+            old.reset(reader, oldTreeId);
+
+            CanonicalTreeParser n = new CanonicalTreeParser();
+            ObjectId newTreeId = repository.resolve(newId.getName() + "^{tree}");
+            n.reset(reader, newTreeId);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            List<DiffEntry> diffs = git.diff().setNewTree(n).setOldTree(old).
+                    setPathFilter(PathFilter.create(filePath)).setOutputStream(out).call();
+
+            result = out.toString();
+        } catch (Exception e) {
+            System.out.println(" error + " + newId.getName() + "\n");
+            System.out.println(e.getMessage());
+        }
+        return result;
+    }
+
+
+    public static void main(String args[]){
+        Repository repository = null;
+        FileRepositoryBuilder repositoryBuilder = new FileRepositoryBuilder();
+        repositoryBuilder.setMustExist(true);
+        repositoryBuilder.setGitDir(new File("E:\\lucene-solr\\.git"));
+        try {
+            repository = repositoryBuilder.build();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (repository.getObjectDatabase().exists()) {
+            Git git = new Git(repository);
+            Iterable<RevCommit> commits = null;
+            try {
+                commits = git.log().call();
+            } catch (GitAPIException e) {
+                e.printStackTrace();
+            }
+
+            for (RevCommit commit : commits){
+                for (int i = 0; i < commit.getParentCount(); i++) {
+                    try {
+                        ObjectId head = repository.resolve(commit.getName() + "^{tree}");
+                        ObjectId old = repository.resolve(commit.getParent(i).getName() + "^{tree}");
+
+                        ObjectReader reader = repository.newObjectReader();
+                        CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+                        oldTreeIter.reset(reader, old);
+                        CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+                        newTreeIter.reset(reader, head);
+
+                        List<DiffEntry> diffs = git.diff().setNewTree(newTreeIter).setOldTree(oldTreeIter).call();
+
+                        for (int j = 0; j < diffs.size(); ++j) {
+                            String path = diffs.get(j).getOldPath();
+                            System.out.println("------------------------------");
+                            String s = getDiffMessage(head, old, path, repository, git);
+                            System.out.println(s);
+                            System.out.println("------------------------------");
+                        }
+
+                    }catch(Exception e){
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }
+    }
 }

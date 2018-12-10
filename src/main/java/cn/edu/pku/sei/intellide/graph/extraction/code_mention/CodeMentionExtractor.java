@@ -180,7 +180,7 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
 
     private void detectCodeMentionInDiff() {
         Map<String, Node> classMap = new HashMap<>();
-        Pattern pattern = Pattern.compile("(ADD|MODIFY|DELETE)\\s+(\\S+)\\s+to\\s+(\\S+)");
+        Pattern pattern = Pattern.compile("(ADD|MODIFY|DELETE)\\s+(\\S+)\\s+to\\s+(\\S+)\\s+::+(\\S+)");
         try (Transaction tx = this.getDb().beginTx()) {
             ResourceIterator<Node> classNodes = this.getDb().findNodes(JavaExtractor.CLASS);
             while (classNodes.hasNext()) {
@@ -198,10 +198,13 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
                     String relStr = matcher.group(1);
                     String srcPath = matcher.group(2);
                     String dstPath = matcher.group(3);
+                    String diffMessage = matcher.group(4);
                     RelationshipType relType = relStr.equals("ADD") ? ADD : relStr.equals("MODIFY") ? MODIFY : DELETE;
                     for (String sig : classMap.keySet())
-                        if (srcPath.contains(sig) || dstPath.contains(sig))
-                            commit.createRelationshipTo(classMap.get(sig), relType);
+                        if (srcPath.contains(sig) || dstPath.contains(sig)){
+                            Relationship r=commit.createRelationshipTo(classMap.get(sig), relType);
+                            r.setProperty("diffMessage",diffMessage);
+                        }
                 }
             }
             tx.success();
