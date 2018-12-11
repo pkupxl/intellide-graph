@@ -2,6 +2,7 @@ package cn.edu.pku.sei.intellide.graph.qa.code_trace;
 
 import cn.edu.pku.sei.intellide.graph.qa.code_search.GraphReader;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.MyNode;
+import cn.edu.pku.sei.intellide.graph.webapp.entity.CommitResult;
 import cn.edu.pku.sei.intellide.graph.webapp.entity.Neo4jNode;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -26,35 +27,38 @@ public class CommitSearch {
         this.graph=graphReader.getAjacentGraph();
     }
 
-    public List<Neo4jNode> searchCommitNodeByClassName(String className){
+    public List<CommitResult> searchCommitResultByClassName(String className){
         for (MyNode node : graph) {
             if(node.fullName.equals(className)){
                 System.out.println("Hit!!");
-                return getNeighborCommitNode(node.getId());
+                return getCommitResult(node.getId(),className);
             }
         }
         return null;
     }
 
-    public List<Neo4jNode> getNeighborCommitNode(Long id){
+    public List<CommitResult> getCommitResult(Long id,String className){
 
-        List<Neo4jNode>result=new ArrayList<>();
+        List<CommitResult>result=new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
             Iterator<Relationship> rels = db.getNodeById(id).getRelationships().iterator();
             while (rels.hasNext()) {
                 Relationship rel = rels.next();
-             /*   if(!rel.getType().name().equals("modify") ||!rel.getType().name().equals("delete")
-                ||!rel.getType().name().equals("add"))continue;*/
                 Node otherNode = rel.getOtherNode(db.getNodeById(id));
                 if(otherNode.getLabels().iterator().next().name().equals("Commit")){
-                    result.add(Neo4jNode.get(otherNode.getId(),db));
+
+                    String diffMessage=null;
+                    if(rel.hasProperty("diffMessage"))
+                        diffMessage=rel.getProperty("diffMessage").toString();
+
+                    result.add(CommitResult.get(otherNode.getId(),db,className,diffMessage));
                 }
             }
-            result.sort(new Comparator<Neo4jNode>() {
+            result.sort(new Comparator<CommitResult>() {
                 @Override
-                public int compare(Neo4jNode o1, Neo4jNode o2) {
-                    String date1=db.getNodeById(o1.getId()).getProperty("commitTime").toString();
-                    String date2=db.getNodeById(o2.getId()).getProperty("commitTime").toString();
+                public int compare(CommitResult o1, CommitResult o2) {
+                    String date1=o1.getCommitTime();
+                    String date2=o2.getCommitTime();
                     return date2.compareTo(date1);
                 }
             });
@@ -65,10 +69,22 @@ public class CommitSearch {
     }
 
     public static void main(String args[]){
-        CommitSearch commitSearch=new  CommitSearch(new GraphDatabaseFactory().newEmbeddedDatabase(new File("D:/Work/Lucene")));
-        List<Neo4jNode> list = commitSearch.searchCommitNodeByClassName("org.apache.lucene.index.IndexReader");
-        for(Neo4jNode n:list){
-            System.out.println(n.getLabel());
+        CommitSearch commitSearch=new  CommitSearch(new GraphDatabaseFactory().newEmbeddedDatabase(new File("D:/Lucene")));
+        List<CommitResult> list = commitSearch.searchCommitResultByClassName("org.apache.lucene.index.IndexReader");
+        for(CommitResult n:list){
+
+            System.out.println("--------------------");
+
+         // System.out.println(n.getId());
+         // System.out.println(n.getName());
+         //   System.out.println(n.getGitUser());
+       //     System.out.println(n.getGitUserEmail());
+       //     System.out.println(n.getCommitTime());
+        //    System.out.println(n.getCommitMessage());
+        //    System.out.println(n.getDiffMessage());
+            System.out.println(n.getDiffSummary());
+            System.out.println("--------------------");
+           // break;
         }
     }
 }

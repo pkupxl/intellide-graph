@@ -128,7 +128,7 @@ public class Controller {
         return issueSearch.searchIssueNodeByClassName(className);
     }
     @RequestMapping(value = "/commitSearch", method = {RequestMethod.GET, RequestMethod.POST})
-    synchronized public List<Neo4jNode> commitSearch(String query, String project) {
+    synchronized public List<CommitResult> commitSearch(String query, String project) {
 
         System.out.println(query);
         CodeAnalyzer analyzer=new CodeAnalyzer(query);
@@ -138,7 +138,7 @@ public class Controller {
             commitSearchMap.put(project,new CommitSearch(getDb(project)));
         }
         CommitSearch commitSearch = commitSearchMap.get(project);
-        return commitSearch.searchCommitNodeByClassName(className);
+        return commitSearch.searchCommitResultByClassName(className);
     }
 
 

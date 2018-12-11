@@ -29,6 +29,7 @@ public class GitExtractor extends KnowledgeExtractor {
     public static final String DIFF_SUMMARY = "diffSummary";
     public static final Label COMMIT = Label.label("Commit");
     public static final String EMAIL_ADDRESS = "emailAddress";
+    public static final String DIFF_MESSAGE_MAP = "diffMessageMap";
     public static final Label GIT_USER = Label.label("GitUser");
     public static final RelationshipType CREATOR = RelationshipType.withName("creator");
     public static final RelationshipType COMMITTER = RelationshipType.withName("committer");
@@ -88,6 +89,7 @@ public class GitExtractor extends KnowledgeExtractor {
         map.put(COMMIT_TIME, commit.getCommitTime());
         List<String> diffStrs = new ArrayList<>();
         Set<String> parentNames = new HashSet<>();
+
         for (int i = 0; i < commit.getParentCount(); i++) {
             parentNames.add(commit.getParent(i).getName());
             ObjectId head = repository.resolve(commit.getName() + "^{tree}");
@@ -102,12 +104,16 @@ public class GitExtractor extends KnowledgeExtractor {
                 String diffMessage="";
                 if(!diffs.get(k).getOldPath().equals("/dev/null")){
                     diffMessage=getDiffMessage(head,old,diffs.get(k).getOldPath(),repository,git);
+                    map.put(diffs.get(k).getOldPath(),diffMessage);
+
                 } else if(!diffs.get(k).getNewPath().equals("/dev/null")){
                     diffMessage=getDiffMessage(head,old,diffs.get(k).getNewPath(),repository,git);
+                    map.put(diffs.get(k).getNewPath(),diffMessage);
                 }
-                diffStrs.add(diffs.get(k).getChangeType().name() + " " + diffs.get(k).getOldPath() + " to " + diffs.get(k).getNewPath() + " :: "+diffMessage);
+                diffStrs.add(diffs.get(k).getChangeType().name() + " " + diffs.get(k).getOldPath() + " to " + diffs.get(k).getNewPath());
             }
         }
+
         map.put(DIFF_SUMMARY, String.join("\n", diffStrs));
         long commitNodeId = this.getInserter().createNode(map, COMMIT);
         commitMap.put(commit.getName(), commitNodeId);

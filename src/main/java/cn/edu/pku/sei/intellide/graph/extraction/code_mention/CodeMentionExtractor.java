@@ -198,13 +198,18 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
                     String relStr = matcher.group(1);
                     String srcPath = matcher.group(2);
                     String dstPath = matcher.group(3);
-                    String diffMessage = matcher.group(4);
                     RelationshipType relType = relStr.equals("ADD") ? ADD : relStr.equals("MODIFY") ? MODIFY : DELETE;
-                    for (String sig : classMap.keySet())
-                        if (srcPath.contains(sig) || dstPath.contains(sig)){
-                            Relationship r=commit.createRelationshipTo(classMap.get(sig), relType);
-                            r.setProperty("diffMessage",diffMessage);
+                    for (String sig : classMap.keySet()) {
+                        if (srcPath.contains(sig)) {
+                            Relationship r = commit.createRelationshipTo(classMap.get(sig), relType);
+                            r.setProperty("diffMessage", commit.getProperty(srcPath));
+                            commit.removeProperty(srcPath);
+                        } else if (dstPath.contains(sig)) {
+                            Relationship r = commit.createRelationshipTo(classMap.get(sig), relType);
+                            r.setProperty("diffMessage", commit.getProperty(dstPath));
+                            commit.removeProperty(dstPath);
                         }
+                    }
                 }
             }
             tx.success();
