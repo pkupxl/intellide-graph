@@ -1,6 +1,7 @@
 package cn.edu.pku.sei.intellide.graph.webapp;
 
 import cn.edu.pku.sei.intellide.graph.qa.code_search.CodeSearch;
+import cn.edu.pku.sei.intellide.graph.qa.code_trace.CodeAnalyzer;
 import cn.edu.pku.sei.intellide.graph.qa.code_trace.CommitSearch;
 import cn.edu.pku.sei.intellide.graph.qa.code_trace.IssueSearch;
 import cn.edu.pku.sei.intellide.graph.qa.doc_search.DocSearch;
@@ -116,19 +117,28 @@ public class Controller {
 
     @RequestMapping(value = "/issueSearch", method = {RequestMethod.GET, RequestMethod.POST})
     synchronized public List<Neo4jNode> issueSearch(String query, String project) {
+        System.out.println(query);
+        CodeAnalyzer analyzer=new CodeAnalyzer(query);
+        String className=analyzer.getFullNameFromCode();
+        System.out.println(className);
         if (!issueSearchMap.containsKey(project)) {
             issueSearchMap.put(project,new IssueSearch(getDb(project)));
         }
         IssueSearch issueSearch = issueSearchMap.get(project);
-        return issueSearch.searchIssueNodeByClassName(query);
+        return issueSearch.searchIssueNodeByClassName(className);
     }
     @RequestMapping(value = "/commitSearch", method = {RequestMethod.GET, RequestMethod.POST})
     synchronized public List<Neo4jNode> commitSearch(String query, String project) {
+
+        System.out.println(query);
+        CodeAnalyzer analyzer=new CodeAnalyzer(query);
+        String className=analyzer.getFullNameFromCode();
+        System.out.println(className);
         if (!commitSearchMap.containsKey(project)) {
             commitSearchMap.put(project,new CommitSearch(getDb(project)));
         }
         CommitSearch commitSearch = commitSearchMap.get(project);
-        return commitSearch.searchCommitNodeByClassName(query);
+        return commitSearch.searchCommitNodeByClassName(className);
     }
 
 

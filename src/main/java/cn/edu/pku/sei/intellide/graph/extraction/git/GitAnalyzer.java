@@ -1,6 +1,5 @@
 package cn.edu.pku.sei.intellide.graph.extraction.git;
 
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 import javafx.util.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.*;
@@ -256,7 +255,7 @@ public class GitAnalyzer {
         return result;
     }
 
-    public Patch getPatch(ObjectId newId, ObjectId oldId, String filePath){
+   /* public Patch getPatch(ObjectId newId, ObjectId oldId, String filePath){
         Patch patch = new Patch();
         try (ObjectReader reader = repository.newObjectReader()) {
             CanonicalTreeParser old = new CanonicalTreeParser();
@@ -280,9 +279,9 @@ public class GitAnalyzer {
             System.out.println(e.getMessage());
         }
         return patch;
-    }
+    }*/
 
-    public Patch getPatch(String oldFile, String newFile){
+    /*public Patch getPatch(String oldFile, String newFile){
         Patch patch = new Patch();
         RawText file1 = new RawText(oldFile.getBytes());
         RawText file2 = new RawText(newFile.getBytes());
@@ -301,7 +300,7 @@ public class GitAnalyzer {
             e.printStackTrace();
         }
         return patch;
-    }
+    }*/
 
     public static void main(String[] args){
 
