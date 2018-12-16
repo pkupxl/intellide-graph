@@ -6,6 +6,7 @@ import cn.edu.pku.sei.intellide.graph.extraction.git.GitExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.html.HtmlExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.java.JavaExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.tokenization.TokenExtractor;
+import com.alibaba.fastjson.JSONObject;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -24,6 +25,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.jsoup.Jsoup;
 import org.neo4j.graphdb.*;
+
 
 import java.io.IOException;
 import java.util.*;
@@ -180,7 +182,7 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
 
     private void detectCodeMentionInDiff() {
         Map<String, Node> classMap = new HashMap<>();
-        Pattern pattern = Pattern.compile("(ADD|MODIFY|DELETE)\\s+(\\S+)\\s+to\\s+(\\S+)\\s+::+(\\S+)");
+        Pattern pattern = Pattern.compile("(ADD|MODIFY|DELETE)\\s+(\\S+)\\s+to\\s+(\\S+)");
         try (Transaction tx = this.getDb().beginTx()) {
             ResourceIterator<Node> classNodes = this.getDb().findNodes(JavaExtractor.CLASS);
             while (classNodes.hasNext()) {
@@ -202,12 +204,14 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
                     for (String sig : classMap.keySet()) {
                         if (srcPath.contains(sig)) {
                             Relationship r = commit.createRelationshipTo(classMap.get(sig), relType);
-                            r.setProperty("diffMessage", commit.getProperty(srcPath));
-                            commit.removeProperty(srcPath);
+                            JSONObject diffMessageMap=JSONObject.parseObject(commit.getProperty("diffMessageMap").toString());
+                            r.setProperty("diffMessage",diffMessageMap.get(srcPath));
+                            System.out.println("already put the diffMessage to Edge");
                         } else if (dstPath.contains(sig)) {
                             Relationship r = commit.createRelationshipTo(classMap.get(sig), relType);
-                            r.setProperty("diffMessage", commit.getProperty(dstPath));
-                            commit.removeProperty(dstPath);
+                            JSONObject diffMessageMap=JSONObject.parseObject(commit.getProperty("diffMessageMap").toString());
+                            r.setProperty("diffMessage",diffMessageMap.get(dstPath));
+                            System.out.println("already put the diffMessage to Edge");
                         }
                     }
                 }

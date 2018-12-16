@@ -177,6 +177,8 @@ public class TokenExtractor extends KnowledgeExtractor {
                 nodeSegs.add(list);
             tx.success();
         }
+
+
         for (List<Node> list : nodeSegs)
             try (Transaction tx = this.getDb().beginTx()) {
                 for (Node node : list)

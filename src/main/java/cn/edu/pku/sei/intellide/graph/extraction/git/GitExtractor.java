@@ -12,6 +12,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
+import org.json.JSONObject;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 
@@ -90,6 +91,8 @@ public class GitExtractor extends KnowledgeExtractor {
         List<String> diffStrs = new ArrayList<>();
         Set<String> parentNames = new HashSet<>();
 
+        JSONObject diffMessageMap=new JSONObject();
+
         for (int i = 0; i < commit.getParentCount(); i++) {
             parentNames.add(commit.getParent(i).getName());
             ObjectId head = repository.resolve(commit.getName() + "^{tree}");
@@ -104,17 +107,33 @@ public class GitExtractor extends KnowledgeExtractor {
                 String diffMessage="";
                 if(!diffs.get(k).getOldPath().equals("/dev/null")){
                     diffMessage=getDiffMessage(head,old,diffs.get(k).getOldPath(),repository,git);
-                    map.put(diffs.get(k).getOldPath(),diffMessage);
+                    try{
+                        diffMessageMap.put(diffs.get(k).getOldPath(),diffMessage);
+                        System.out.println("find the diffsummary....................");
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
 
                 } else if(!diffs.get(k).getNewPath().equals("/dev/null")){
                     diffMessage=getDiffMessage(head,old,diffs.get(k).getNewPath(),repository,git);
-                    map.put(diffs.get(k).getNewPath(),diffMessage);
+                    try{
+                        diffMessageMap.put(diffs.get(k).getNewPath(),diffMessage);
+                        System.out.println("find the diffsummary....................");
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
                 }
                 diffStrs.add(diffs.get(k).getChangeType().name() + " " + diffs.get(k).getOldPath() + " to " + diffs.get(k).getNewPath());
             }
         }
 
+        map.put(DIFF_MESSAGE_MAP,diffMessageMap.toString());
+        System.out.println("All diffSummary are put into graph----------------------------------");
+
         map.put(DIFF_SUMMARY, String.join("\n", diffStrs));
+
         long commitNodeId = this.getInserter().createNode(map, COMMIT);
         commitMap.put(commit.getName(), commitNodeId);
         parentsMap.put(commit.getName(), parentNames);

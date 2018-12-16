@@ -15,7 +15,7 @@ public class SnowView {
 
     public static void main(String[] args) {
         SpringApplication.run(SnowView.class, args);
- /*       System.setProperty("file.encoding", "utf-8");
+  /*      System.setProperty("file.encoding", "utf-8");
         CmdOption option = new CmdOption();
         CmdLineParser parser = new CmdLineParser(option);
 
