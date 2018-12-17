@@ -55,6 +55,8 @@ public abstract class KnowledgeExtractor {
         Map<String, String> ret = yaml.load(yamlStr);
         String graphDir = ret.get("graphDir");
         ret.remove("graphDir");
+
+
         List<ExtractorConfig> configs = new ArrayList<>();
         for (String key : ret.keySet()) {
             configs.add(new ExtractorConfig(key, graphDir, ret.get(key)));

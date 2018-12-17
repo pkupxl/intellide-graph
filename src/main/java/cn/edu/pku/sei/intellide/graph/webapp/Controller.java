@@ -142,6 +142,7 @@ public class Controller {
     }
 
 
+
     private GraphDatabaseService getDb(String project) {
         if (!dbMap.containsKey(project)) {
             GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(context.graphDir + '/' + project));
@@ -164,5 +165,4 @@ class Context {
         this.dataDir = conf.getDataDir();
         this.infoDir = conf.getInfoDir();
     }
-
 }

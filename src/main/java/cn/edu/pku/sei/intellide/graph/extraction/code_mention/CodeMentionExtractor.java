@@ -5,6 +5,7 @@ import cn.edu.pku.sei.intellide.graph.extraction.code_mention.utils.CodeIndexes;
 import cn.edu.pku.sei.intellide.graph.extraction.git.GitExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.html.HtmlExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.java.JavaExtractor;
+import cn.edu.pku.sei.intellide.graph.extraction.jira.JiraExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.tokenization.TokenExtractor;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.lucene.analysis.Analyzer;
@@ -25,8 +26,10 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.jsoup.Jsoup;
 import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -47,6 +50,8 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
     public static final RelationshipType ADD = RelationshipType.withName("add");
     public static final RelationshipType MODIFY = RelationshipType.withName("modify");
     public static final RelationshipType DELETE = RelationshipType.withName("delete");
+    public static final RelationshipType RELATE_VIA_COMMIT = RelationshipType.withName("relateviacommit");
+
 
     @Override
     public void extraction() {
@@ -57,6 +62,8 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
             e.printStackTrace();
         }
         this.detectCodeMentionInDiff();
+
+        this.detectIssueRelateToClassViaCommit();
     }
 
     private void detectCodeMentionInFlossDocuments() {
@@ -220,4 +227,83 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
         }
     }
 
+
+    private void detectIssueRelateToClassViaCommit(){
+
+        //根据图的名称获取项目名,要求建图的配置文件中图的命名必须与项目名一致。
+        String projectName=null;
+        int start=this.getGraphDir().lastIndexOf("/");
+        if(start!=-1){
+            projectName=this.getGraphDir().substring(start+1).toUpperCase();
+        }else{
+            projectName=this.getGraphDir().toUpperCase();
+        }
+
+
+        try (Transaction tx = this.getDb().beginTx()) {
+            ResourceIterator<Node> classNodes = this.getDb().findNodes(JavaExtractor.CLASS);
+            while (classNodes.hasNext()) {
+                Node classNode = classNodes.next();
+                Iterator<Relationship> relationIter = classNode.getRelationships().iterator();
+                while (relationIter.hasNext()) {
+                    Relationship relation = relationIter.next();
+                    if(relation.isType(MODIFY)||relation.isType(ADD)||relation.isType(DELETE)){
+                        Node otherNode = relation.getOtherNode(classNode);
+                        String message=otherNode.getProperty("message").toString();
+                        Pattern pattern = Pattern.compile(projectName+"-(\\d+):(.*)");
+                        Matcher matcher = pattern.matcher(message);
+                        if(matcher.find()){
+                            String issueId=message.split(":")[0];
+                            String query="MATCH (n:JiraIssue) WHERE n.name=\""+issueId+"\" RETURN n";
+                            Result result = this.getDb().execute(query);
+                            while(result.hasNext()){
+                                Node issue = (Node) result.next().get("n");
+                                System.out.println("-----"+classNode.getProperty("name").toString()+"-----"+issueId+"-----");
+                                issue.createRelationshipTo(classNode,RELATE_VIA_COMMIT);
+                            }
+                        }
+                    }
+                }
+            }
+            tx.success();
+        }
+    }
+
+
+
+    public static void main(String args[]){
+        GraphDatabaseService db=new GraphDatabaseFactory().newEmbeddedDatabase(new File("D:\\Work\\Lucene"));
+        String projectName="LUCENE";
+
+        try (Transaction tx = db.beginTx()) {
+            ResourceIterator<Node> classNodes = db.findNodes(JavaExtractor.CLASS);
+            while (classNodes.hasNext()) {
+                Node classNode = classNodes.next();
+                Iterator<Relationship> relationIter = classNode.getRelationships().iterator();
+                while (relationIter.hasNext()) {
+                    Relationship relation = relationIter.next();
+                    if(relation.isType(MODIFY)||relation.isType(ADD)||relation.isType(DELETE)){
+                        Node otherNode = relation.getOtherNode(classNode);
+                        String message=otherNode.getProperty("message").toString();
+                        Pattern pattern = Pattern.compile(projectName+"-(\\d+):(.*)");
+                        Matcher matcher = pattern.matcher(message);
+                        if(matcher.find()){
+                            String issueId=message.split(":")[0];
+                            String query="MATCH (n:JiraIssue) WHERE n.name=\""+issueId+"\" RETURN n";
+                            Result result = db.execute(query);
+                            while(result.hasNext()){
+                                Node issue = (Node) result.next().get("n");
+                                System.out.println("------------------"+issueId+"-------------------------");
+                                System.out.println(issue.getProperty("name"));
+                                System.out.println(issue.getProperty("description"));
+                                System.out.println("------------------------------------------------------");
+
+                            }
+                        }
+                    }
+                }
+            }
+            tx.success();
+        }
+    }
 }
