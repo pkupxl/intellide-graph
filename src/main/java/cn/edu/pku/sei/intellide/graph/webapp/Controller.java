@@ -119,26 +119,34 @@ public class Controller {
     synchronized public List<Neo4jNode> issueSearch(String query, String project) {
         System.out.println(query);
         CodeAnalyzer analyzer=new CodeAnalyzer(query);
-        String className=analyzer.getFullNameFromCode();
-        System.out.println(className);
+    //    String className=analyzer.getFullNameFromCode();
+
+        String methodName=analyzer.getMethodNameFromCode();
+ //       System.out.println(className);
         if (!issueSearchMap.containsKey(project)) {
             issueSearchMap.put(project,new IssueSearch(getDb(project)));
         }
         IssueSearch issueSearch = issueSearchMap.get(project);
-        return issueSearch.searchIssueNodeByClassName(className);
+
+  //      return issueSearch.searchIssueNodeByClassName(className);
+        return issueSearch.searchIssueNodeByMethodName(methodName);
     }
     @RequestMapping(value = "/commitSearch", method = {RequestMethod.GET, RequestMethod.POST})
     synchronized public List<CommitResult> commitSearch(String query, String project) {
 
         System.out.println(query);
         CodeAnalyzer analyzer=new CodeAnalyzer(query);
-        String className=analyzer.getFullNameFromCode();
-        System.out.println(className);
+    //    String className=analyzer.getFullNameFromCode();
+
+        String methodName=analyzer.getMethodNameFromCode();
+        //   System.out.println(className);
         if (!commitSearchMap.containsKey(project)) {
             commitSearchMap.put(project,new CommitSearch(getDb(project)));
         }
         CommitSearch commitSearch = commitSearchMap.get(project);
-        return commitSearch.searchCommitResultByClassName(className);
+
+  //      return commitSearch.searchCommitResultByClassName(className);
+        return commitSearch.searchCommitResultByMethodName(methodName);
     }
 
 
