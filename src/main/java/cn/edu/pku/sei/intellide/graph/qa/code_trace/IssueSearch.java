@@ -34,6 +34,11 @@ public class IssueSearch {
         return null;
     }
 
+    public List<Neo4jNode> searchIssueNodeByMethodName(String className){
+
+        return null;
+    }
+
     public List<Neo4jNode> getNeighborIssueNode(Long id){
 
         List<Neo4jNode>result=new ArrayList<>();

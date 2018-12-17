@@ -37,6 +37,12 @@ public class CommitSearch {
         return null;
     }
 
+
+    public List<CommitResult> searchCommitResultByMethodName(String methodName){
+
+        return null;
+    }
+
     public List<CommitResult> getCommitResult(Long id,String className){
 
         List<CommitResult>result=new ArrayList<>();
