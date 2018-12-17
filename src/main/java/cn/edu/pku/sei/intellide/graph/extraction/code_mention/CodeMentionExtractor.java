@@ -239,7 +239,6 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
             projectName=this.getGraphDir().toUpperCase();
         }
 
-
         try (Transaction tx = this.getDb().beginTx()) {
             ResourceIterator<Node> classNodes = this.getDb().findNodes(JavaExtractor.CLASS);
             while (classNodes.hasNext()) {
@@ -252,7 +251,8 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
                         String message=otherNode.getProperty("message").toString();
                         Pattern pattern = Pattern.compile(projectName+"-(\\d+):(.*)");
                         Matcher matcher = pattern.matcher(message);
-                        if(matcher.find()){
+
+                        if(matcher.find() && matcher.start()==0){
                             String issueId=message.split(":")[0];
                             String query="MATCH (n:JiraIssue) WHERE n.name=\""+issueId+"\" RETURN n";
                             Result result = this.getDb().execute(query);
@@ -287,7 +287,7 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
                         String message=otherNode.getProperty("message").toString();
                         Pattern pattern = Pattern.compile(projectName+"-(\\d+):(.*)");
                         Matcher matcher = pattern.matcher(message);
-                        if(matcher.find()){
+                        if(matcher.find() && matcher.start()==0 ){
                             String issueId=message.split(":")[0];
                             String query="MATCH (n:JiraIssue) WHERE n.name=\""+issueId+"\" RETURN n";
                             Result result = db.execute(query);

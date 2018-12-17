@@ -11,6 +11,7 @@ public class CodeAnalyzer {
     public CodeAnalyzer(String code){
         this.code=code;
     }
+
     public String getFullNameFromCode(){
         ASTParser parser = ASTParser.newParser(AST.JLS10);
         parser.setSource(this.code.toCharArray());
@@ -21,6 +22,11 @@ public class CodeAnalyzer {
         return ((CodeVisitor) codeVisitor).getClassName();
     }
 
+    /*public String getMethodNameFromCode(){
+
+
+
+    }*/
     class CodeVisitor extends ASTVisitor{
         private List<String> className=null;
         public String getClassName(){
@@ -38,6 +44,8 @@ public class CodeAnalyzer {
             return false;
         }
     }
+
+
 
     public static void main(String args[]){
         String code="/*\n" +
