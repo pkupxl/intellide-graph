@@ -62,7 +62,7 @@ public class IssueSearch {
             Iterator<Relationship> rels = db.getNodeById(id).getRelationships().iterator();
             while (rels.hasNext()) {
                 Relationship rel = rels.next();
-                if(!rel.getType().name().equals("codeMention"))continue;
+                if(!rel.getType().name().equals("relateviacommit"))continue;
                 Node otherNode = rel.getOtherNode(db.getNodeById(id));
                 if(otherNode.getLabels().iterator().next().name().equals("JiraIssue")){
                     result.add(Neo4jNode.get(otherNode.getId(),db));

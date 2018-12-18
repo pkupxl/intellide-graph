@@ -68,8 +68,12 @@ public class CommitSearch {
                 if(otherNode.getLabels().iterator().next().name().equals("Commit")){
 
                     String diffMessage=null;
-                    if(rel.hasProperty("diffMessage"))
+                    if(rel.hasProperty("diffMessage")){
                         diffMessage=rel.getProperty("diffMessage").toString();
+
+                        System.out.println(diffMessage);
+                    }
+
 
                     result.add(CommitResult.get(otherNode.getId(),db,className,diffMessage));
                 }

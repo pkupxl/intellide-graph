@@ -168,6 +168,7 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
             }
             tx.success();
         }
+
         try (Transaction tx = this.getDb().beginTx()) {
             ResourceIterator<Node> classNodes = this.getDb().findNodes(JavaExtractor.CLASS);
             while (classNodes.hasNext()) {
@@ -186,6 +187,9 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
             tx.success();
         }
     }
+
+
+
 
     private void detectCodeMentionInDiff() {
         Map<String, Node> classMap = new HashMap<>();
