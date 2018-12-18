@@ -81,22 +81,7 @@ public class CommitResult {
             }
 
 
-            Pattern pattern = Pattern.compile("\\{diffSummary=(ADD|MODIFY|DELETE)\\s+(\\S+)\\s+to\\s+(\\S+)\\s+::+(\\S+)}");
-            Matcher matcher = pattern.matcher(diffSummary);
-
-            String diffMessage1=null;
-            String sig = className.replace('.', '/') + ".java";
-
-            while (matcher.find()) {
-                String relStr = matcher.group(1);
-                String srcPath = matcher.group(2);
-                String dstPath = matcher.group(3);
-                String message = matcher.group(4);
-                if (srcPath.contains(sig) || dstPath.contains(sig)){
-                    diffMessage1=message;
-                }
-            }
-            result=new CommitResult(id,name,createdTime,commitMessage,gitUser,gitUserEmail,diffSummary,diffMessage1);
+            result=new CommitResult(id,name,createdTime,commitMessage,gitUser,gitUserEmail,diffSummary,diffMessage);
             tx.success();
         }
         return result;
