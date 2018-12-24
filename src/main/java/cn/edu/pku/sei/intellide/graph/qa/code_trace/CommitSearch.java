@@ -95,6 +95,9 @@ public class CommitSearch {
 
     public static String Recover(String code,String diff ){
         String result="";
+        if(diff==null){
+            return code;
+        }
         String []Diffline=diff.split("\n");
         String[]content=code.split("\n");
         int prestart=1;
@@ -105,7 +108,7 @@ public class CommitSearch {
                 String temp = Diffline[j].split(" ")[2];
                 int start = Integer.parseInt(temp.split(",")[0]);
                 int len = Integer.parseInt(temp.split(",")[1]);
-                for (int k = prestart + prelength; k < start && k <= content.length; ++k) {
+                for (int k = prestart + prelength;  k>0 && k < start && k <= content.length; ++k) {
                     result+=content[k-1]  + "\n";
                 }
                 prestart = start;
@@ -121,7 +124,7 @@ public class CommitSearch {
         }
 
         if(prelength+prestart<=content.length){
-            for (int k = prestart + prelength; k <= content.length; ++k) {
+            for (int k = prestart + prelength; k > 0 && k <= content.length; ++k) {
                 result+=content[k-1]  + "\n";
             }
         }
