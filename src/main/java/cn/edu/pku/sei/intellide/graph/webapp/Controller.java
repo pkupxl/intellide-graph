@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -148,6 +149,43 @@ public class Controller {
         return commitSearch.searchCommitResultByClassName(className);
    //     return commitSearch.searchCommitResultByMethodName(methodName);
     }
+
+    @RequestMapping(value = "/historySearch", method = {RequestMethod.GET, RequestMethod.POST})
+    synchronized public List<HistoryResult> historySearch(String query, String project) {
+
+        System.out.println(query);
+        CodeAnalyzer analyzer=new CodeAnalyzer(query);
+        String className=analyzer.getFullNameFromCode();
+
+        //    String methodName=analyzer.getMethodNameFromCode();
+        System.out.println(className);
+        if (!commitSearchMap.containsKey(project)) {
+            commitSearchMap.put(project,new CommitSearch(getDb(project)));
+        }
+        CommitSearch commitSearch = commitSearchMap.get(project);
+
+        List<CommitResult> commitResults=commitSearch.searchCommitResultByClassName(className);
+
+        List<HistoryResult>result=new ArrayList<>();
+        String content=query;
+        String preContent="";
+        System.out.println("查找历史.............");
+        for(int i=0;i<commitResults.size();++i){
+            System.out.println("---------------------------");
+            preContent=CommitSearch.Recover(content,commitResults.get(i).getDiffMessage());
+            System.out.println("PreContent");
+            System.out.println(preContent);
+            System.out.println("Content");
+            System.out.println(content);
+            System.out.println("---------------------------");
+            result.add(new HistoryResult(preContent,content,commitResults.get(i).getCommitMessage()));
+            content=preContent;
+        }
+
+        System.out.println("查找历史完毕");
+        return result;
+    }
+
 
 
 
