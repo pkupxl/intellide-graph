@@ -50,7 +50,7 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
     public static final RelationshipType ADD = RelationshipType.withName("add");
     public static final RelationshipType MODIFY = RelationshipType.withName("modify");
     public static final RelationshipType DELETE = RelationshipType.withName("delete");
-    public static final RelationshipType RELATE_VIA_COMMIT = RelationshipType.withName("relateviacommit");
+    public static final RelationshipType COMMIT_FOR_ISSUE = RelationshipType.withName("commitforissue");
 
 
     @Override
@@ -244,28 +244,21 @@ public class CodeMentionExtractor extends KnowledgeExtractor {
         }
 
         try (Transaction tx = this.getDb().beginTx()) {
-            ResourceIterator<Node> classNodes = this.getDb().findNodes(JavaExtractor.CLASS);
-            while (classNodes.hasNext()) {
-                Node classNode = classNodes.next();
-                Iterator<Relationship> relationIter = classNode.getRelationships().iterator();
-                while (relationIter.hasNext()) {
-                    Relationship relation = relationIter.next();
-                    if(relation.isType(MODIFY)||relation.isType(ADD)||relation.isType(DELETE)){
-                        Node otherNode = relation.getOtherNode(classNode);
-                        String message=otherNode.getProperty("message").toString();
-                        Pattern pattern = Pattern.compile(projectName+"-(\\d+):(.*)");
-                        Matcher matcher = pattern.matcher(message);
+            ResourceIterator<Node> commitNodes = this.getDb().findNodes(GitExtractor.COMMIT);
+            while (commitNodes.hasNext()) {
+                Node commitNode = commitNodes.next();
+                String message=commitNode.getProperty("message").toString();
+                Pattern pattern = Pattern.compile(projectName+"-(\\d+):(.*)");
+                Matcher matcher = pattern.matcher(message);
 
-                        if(matcher.find() && matcher.start()==0){
-                            String issueId=message.split(":")[0];
-                            String query="MATCH (n:JiraIssue) WHERE n.name=\""+issueId+"\" RETURN n";
-                            Result result = this.getDb().execute(query);
-                            while(result.hasNext()){
-                                Node issue = (Node) result.next().get("n");
-                                System.out.println("-----"+classNode.getProperty("name").toString()+"-----"+issueId+"-----");
-                                issue.createRelationshipTo(classNode,RELATE_VIA_COMMIT);
-                            }
-                        }
+                if(matcher.find() && matcher.start()==0){
+                    String issueId=message.split(":")[0];
+                    String query="MATCH (n:JiraIssue) WHERE n.name=\""+issueId+"\" RETURN n";
+                    Result result = this.getDb().execute(query);
+                    while(result.hasNext()){
+                        Node issue = (Node) result.next().get("n");
+                        System.out.println("-----"+commitNode.getProperty("name").toString()+"-----"+issueId+"-----");
+                        commitNode.createRelationshipTo(issue,COMMIT_FOR_ISSUE);
                     }
                 }
             }

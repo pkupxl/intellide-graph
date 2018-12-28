@@ -1,5 +1,6 @@
 package cn.edu.pku.sei.intellide.graph.qa.code_trace;
 
+import cn.edu.pku.sei.intellide.graph.extraction.code_mention.CodeMentionExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.java.JavaExtractor;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.GraphReader;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.MyNode;
@@ -26,7 +27,7 @@ public class IssueSearch {
         for (MyNode node : graph) {
            if(node.fullName.equals(className)){
                System.out.println("Hit!!");
-               return getNeighborIssueNode(node.getId());
+               return getIssueNode(node.getId());
            }
         }
         return null;
@@ -44,7 +45,7 @@ public class IssueSearch {
                         Relationship r = relationIter.next();
                         if (r.isType(JavaExtractor.HAVE_METHOD)) {
                             Node otherNode = r.getOtherNode(node);
-                            return getNeighborIssueNode(otherNode.getId());
+                            return getIssueNode(otherNode.getId());
                         }
                     }
                 }
@@ -55,19 +56,27 @@ public class IssueSearch {
         return null;
     }
 
-    public List<Neo4jNode> getNeighborIssueNode(Long id){
+    public List<Neo4jNode> getIssueNode(Long id){
 
         List<Neo4jNode>result=new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
             Iterator<Relationship> rels = db.getNodeById(id).getRelationships().iterator();
             while (rels.hasNext()) {
                 Relationship rel = rels.next();
-                if(!rel.getType().name().equals("relateviacommit"))continue;
-                Node otherNode = rel.getOtherNode(db.getNodeById(id));
-                if(otherNode.getLabels().iterator().next().name().equals("JiraIssue")){
-                    result.add(Neo4jNode.get(otherNode.getId(),db));
+                if(rel.isType(CodeMentionExtractor.ADD)||rel.isType(CodeMentionExtractor.DELETE)||rel.isType(CodeMentionExtractor.MODIFY)){
+                    Node commitNode = rel.getOtherNode(db.getNodeById(id));
+                    Iterator<Relationship> issueRels = commitNode.getRelationships().iterator();
+                    while(issueRels.hasNext()){
+                        Relationship issueRel = issueRels.next();
+                        if(issueRel.isType(CodeMentionExtractor.COMMIT_FOR_ISSUE)){
+                            Node issueNode=issueRel.getOtherNode(commitNode);
+                            result.add(Neo4jNode.get(issueNode.getId(),db));
+                        }
+                    }
                 }
             }
+
+
             result.sort(new Comparator<Neo4jNode>() {
                 @Override
                 public int compare(Neo4jNode o1, Neo4jNode o2) {
@@ -78,7 +87,6 @@ public class IssueSearch {
             });
             tx.success();
         }
-
         return result;
     }
 
