@@ -58,6 +58,7 @@ public class IssueSearch {
 
     public List<Neo4jNode> getIssueNode(Long id){
 
+        List<Long> issueIdResult=new ArrayList();
         List<Neo4jNode>result=new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
             Iterator<Relationship> rels = db.getNodeById(id).getRelationships().iterator();
@@ -70,12 +71,17 @@ public class IssueSearch {
                         Relationship issueRel = issueRels.next();
                         if(issueRel.isType(CodeMentionExtractor.COMMIT_FOR_ISSUE)){
                             Node issueNode=issueRel.getOtherNode(commitNode);
-                            result.add(Neo4jNode.get(issueNode.getId(),db));
+                            if(!issueIdResult.contains(issueNode.getId())){
+                                issueIdResult.add(issueNode.getId());
+                            }
                         }
                     }
                 }
             }
 
+            for(int i=0;i<issueIdResult.size();++i){
+                result.add(Neo4jNode.get(issueIdResult.get(i),db));
+            }
 
             result.sort(new Comparator<Neo4jNode>() {
                 @Override

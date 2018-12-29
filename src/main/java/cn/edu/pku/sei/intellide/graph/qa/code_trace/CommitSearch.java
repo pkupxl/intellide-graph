@@ -1,5 +1,6 @@
 package cn.edu.pku.sei.intellide.graph.qa.code_trace;
 
+import cn.edu.pku.sei.intellide.graph.extraction.code_mention.CodeMentionExtractor;
 import cn.edu.pku.sei.intellide.graph.extraction.java.JavaExtractor;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.GraphReader;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.MyNode;
@@ -58,26 +59,27 @@ public class CommitSearch {
     }
 
     public List<CommitResult> getCommitResult(Long id,String className){
-
+        List<Node> resultNodes=new ArrayList<>();
         List<CommitResult>result=new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
+
+            Node currentNode=db.getNodeById(id);
             Iterator<Relationship> rels = db.getNodeById(id).getRelationships().iterator();
             while (rels.hasNext()) {
                 Relationship rel = rels.next();
-                Node otherNode = rel.getOtherNode(db.getNodeById(id));
-                if(otherNode.getLabels().iterator().next().name().equals("Commit")){
-
-                    String diffMessage=null;
+                if(rel.isType(CodeMentionExtractor.ADD)||rel.isType(CodeMentionExtractor.MODIFY)||rel.isType(CodeMentionExtractor.DELETE)){
+                    Node otherNode=rel.getOtherNode(currentNode);
+                    if(resultNodes.contains(otherNode))continue;
+                    resultNodes.add(otherNode);
+                    String diffMessage="";
                     if(rel.hasProperty("diffMessage")){
                         diffMessage=rel.getProperty("diffMessage").toString();
-
-           //             System.out.println(diffMessage);
+                        //System.out.println(diffMessage);
                     }
-
-
                     result.add(CommitResult.get(otherNode.getId(),db,className,diffMessage));
                 }
             }
+
             result.sort(new Comparator<CommitResult>() {
                 @Override
                 public int compare(CommitResult o1, CommitResult o2) {

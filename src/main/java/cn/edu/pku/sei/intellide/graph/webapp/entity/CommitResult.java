@@ -86,4 +86,9 @@ public class CommitResult {
         }
         return result;
     }
+
+
+    boolean equals(CommitResult commitResult){
+        return this.id==commitResult.id;
+    }
 }
