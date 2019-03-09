@@ -11,14 +11,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CommitResult {
-    private final long id;
-    private final String name;
-    private final String commitTime;
-    private final String commitMessage;
-    private final String gitUser;
-    private final String gitUserEmail;
-    private final String diffSummary;
-    private final String diffMessage;
+    private long id;
+    private String name;
+    private String commitTime;
+    private String commitMessage;
+    private String gitUser;
+    private String gitUserEmail;
+    private String diffSummary;
+    private String diffMessage;
     public CommitResult(long id,String name,String createdTime,String commitMessage,String gitUser,String gitUserEmail,String diffSummary,String diffMessage){
         this.id=id;
         this.name=name;
@@ -89,6 +89,22 @@ public class CommitResult {
 
 
     boolean equals(CommitResult commitResult){
+        if(this.diffMessage.equals(commitResult.diffMessage))return true;
         return this.id==commitResult.id;
     }
+
+    public String getPath(){
+        String []Diffline=this.diffMessage.split("\n");
+        for(int j=0;j<Diffline.length;++j) {
+            if (Diffline[j].startsWith("+++")) {
+                return Diffline[j].substring(6);
+            }
+        }
+        return null;
+    }
+
+    public void setCommitTime(String time){
+        this.commitTime=time;
+    }
+
 }

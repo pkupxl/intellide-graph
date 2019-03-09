@@ -2,22 +2,27 @@ package cn.edu.pku.sei.intellide.graph.extraction.git;
 
 import cn.edu.pku.sei.intellide.graph.extraction.KnowledgeExtractor;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectReader;
-import org.eclipse.jgit.lib.PersonIdent;
-import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.revwalk.DepthWalk;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.json.JSONObject;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
+import sun.reflect.generics.tree.Tree;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.io.ByteArrayOutputStream;
 
@@ -191,7 +196,7 @@ public class GitExtractor extends KnowledgeExtractor {
 
 
     public static void main(String args[]){
-        Repository repository = null;
+/*        Repository repository = null;
         FileRepositoryBuilder repositoryBuilder = new FileRepositoryBuilder();
         repositoryBuilder.setMustExist(true);
         repositoryBuilder.setGitDir(new File("E:\\lucene-solr\\.git"));
@@ -238,6 +243,101 @@ public class GitExtractor extends KnowledgeExtractor {
 
                 }
             }
+        }*/
+
+
+
+        try{
+            Repository repo = new FileRepository("D:\\项目源代码\\luceneGIT\\.git");
+            Git git = new Git(repo);
+            Ref head = repo.findRef("HEAD");
+
+            RevWalk walk = new RevWalk(repo);
+     /*       String branchName = "refs/heads/master";
+            RevCommit masterHead = walk.parseCommit( repo.resolve( branchName ));
+            walk.markStart(masterHead);
+*/
+            String commitid="e92a38af90d12e51390b4307ccbe0c24ac7b6b4e";
+            ObjectId id = repo.resolve(commitid);
+            RevCommit commit = walk.parseCommit(id);
+            RevTree tree = commit.getTree();
+
+
+            try (TreeWalk treeWalk = new TreeWalk(repo)) {
+                treeWalk.addTree(tree);
+                // not walk the tree recursively so we only get the elements in the top-level directory
+                treeWalk.setRecursive(true);
+                while (treeWalk.next()) {
+                    System.out.println("found: " + treeWalk.getPathString());
+                }
+            }
+       //     System.out.println("commitnum:"+commitnum);
+
+
+        /*    List<Ref> call = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
+            System.out.println("branch number:"+call.size());
+            int sum=0;
+            for (Ref ref : call) {
+
+                RevCommit masterHead=walk.parseCommit(ref.getObjectId());
+                walk.markStart(masterHead);
+                int total=0;
+                for (RevCommit commit : walk){
+                    total++;
+                }
+                System.out.println("branch name:"+ref.getName());
+                System.out.println(total);
+                sum+=total;
+            }
+            System.out.println("Sum:"+sum);*/
+
+
+
+            /*Ref head = repo.exactRef("refs/heads/master");
+            RevCommit masterHead=walk.parseCommit(head.getObjectId());
+            walk.markStart(masterHead);
+
+            Iterable<RevCommit> commits = null;
+            commits = git.log().call();
+            int count=0;
+            int total=0;
+            for (RevCommit commit : walk){
+                if(walk.isMergedInto( commit, masterHead )){
+                    System.out.println("Not in master!");
+                    count++;
+                }
+                total++;
+            }
+            System.out.println(count);
+            System.out.println(total);*/
+        }catch (Exception e){
+            e.printStackTrace();
         }
+
+
+
+
+
+
+     /*try{
+         Repository repo = new FileRepository("D:\\项目源代码\\luceneGIT\\.git");
+         RevWalk walk = new RevWalk(repo);
+         String commitid="e92a38af90d12e51390b4307ccbe0c24ac7b6b4e";
+         ObjectId id = repo.resolve(commitid);
+         RevCommit commit = walk.parseCommit( id );
+         TreeWalk twalk = TreeWalk.forPath(repo, "lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java", commit.getTree());
+         if (twalk != null) {
+             byte[] bytes = repo.open(twalk.getObjectId(0)).getBytes();
+             System.out.println(new String(bytes, StandardCharsets.UTF_8)) ;
+         } else {
+             System.out.println("twalk is null");
+         }
+     }catch(Exception e){
+         e.printStackTrace();
+     }*/
+
+
+
+
     }
 }

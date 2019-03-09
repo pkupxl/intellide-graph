@@ -5,11 +5,7 @@ import cn.edu.pku.sei.intellide.graph.extraction.java.JavaExtractor;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.GraphReader;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.MyNode;
 import cn.edu.pku.sei.intellide.graph.webapp.entity.Neo4jNode;
-import cn.edu.pku.sei.intellide.graph.webapp.entity.Neo4jRelation;
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-
-import java.io.File;
 import java.util.*;
 
 public class IssueSearch {
@@ -21,6 +17,30 @@ public class IssueSearch {
         this.db=db;
         this.graphReader=new GraphReader(db);
         this.graph=graphReader.getAjacentGraph();
+    }
+
+    public List<Neo4jNode> search(CodeAnalyzer analyzer){
+        if(analyzer.getType().equals("Class")){
+            String className=analyzer.getFullNameFromCode();
+            return searchIssueNodeByClassName(className);
+        }else if(analyzer.getType().equals("Method")){
+            String methodName=analyzer.getMethodNameFromCode();
+            return searchIssueNodeByMethodName(methodName);
+        } else{
+            try (Transaction tx = db.beginTx()) {
+                ResourceIterator<Node> iterator = db.findNodes(JavaExtractor.CLASS);
+                while (iterator.hasNext()) {
+                    Node node = iterator.next();
+                    String content=node.getProperty(JavaExtractor.CONTENT).toString();
+                    if(content.contains(analyzer.getCode())){
+                        return getIssueNode(node.getId());
+                    }
+                }
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            return null;
+        }
     }
 
     public List<Neo4jNode> searchIssueNodeByClassName(String className){
@@ -56,22 +76,22 @@ public class IssueSearch {
         return null;
     }
 
-    public List<Neo4jNode> getIssueNode(Long id){
+    public List<Neo4jNode> getIssueNode(Long id) {
 
-        List<Long> issueIdResult=new ArrayList();
-        List<Neo4jNode>result=new ArrayList<>();
+        List<Long> issueIdResult = new ArrayList();
+        List<Neo4jNode> result = new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
             Iterator<Relationship> rels = db.getNodeById(id).getRelationships().iterator();
             while (rels.hasNext()) {
                 Relationship rel = rels.next();
-                if(rel.isType(CodeMentionExtractor.ADD)||rel.isType(CodeMentionExtractor.DELETE)||rel.isType(CodeMentionExtractor.MODIFY)){
+                if (rel.isType(CodeMentionExtractor.ADD) || rel.isType(CodeMentionExtractor.DELETE) || rel.isType(CodeMentionExtractor.MODIFY)) {
                     Node commitNode = rel.getOtherNode(db.getNodeById(id));
                     Iterator<Relationship> issueRels = commitNode.getRelationships().iterator();
-                    while(issueRels.hasNext()){
+                    while (issueRels.hasNext()) {
                         Relationship issueRel = issueRels.next();
-                        if(issueRel.isType(CodeMentionExtractor.COMMIT_FOR_ISSUE)){
-                            Node issueNode=issueRel.getOtherNode(commitNode);
-                            if(!issueIdResult.contains(issueNode.getId())){
+                        if (issueRel.isType(CodeMentionExtractor.COMMIT_FOR_ISSUE)) {
+                            Node issueNode = issueRel.getOtherNode(commitNode);
+                            if (!issueIdResult.contains(issueNode.getId())) {
                                 issueIdResult.add(issueNode.getId());
                             }
                         }
@@ -79,15 +99,15 @@ public class IssueSearch {
                 }
             }
 
-            for(int i=0;i<issueIdResult.size();++i){
-                result.add(Neo4jNode.get(issueIdResult.get(i),db));
+            for (int i = 0; i < issueIdResult.size(); ++i) {
+                result.add(Neo4jNode.get(issueIdResult.get(i), db));
             }
 
             result.sort(new Comparator<Neo4jNode>() {
                 @Override
                 public int compare(Neo4jNode o1, Neo4jNode o2) {
-                    String date1=db.getNodeById(o1.getId()).getProperty("createdDate").toString();
-                    String date2=db.getNodeById(o2.getId()).getProperty("createdDate").toString();
+                    String date1 = db.getNodeById(o1.getId()).getProperty("createdDate").toString();
+                    String date2 = db.getNodeById(o2.getId()).getProperty("createdDate").toString();
                     return date2.compareTo(date1);
                 }
             });
@@ -95,13 +115,4 @@ public class IssueSearch {
         }
         return result;
     }
-
-    public static void main(String args[]){
-        IssueSearch issueSearch=new IssueSearch(new GraphDatabaseFactory().newEmbeddedDatabase(new File("D:/Work/Lucene")));
-        List<Neo4jNode> list = issueSearch.searchIssueNodeByClassName("org.apache.lucene.index.IndexReader");
-        for(Neo4jNode n:list){
-            System.out.println(n.getLabel());
-        }
-    }
-
 }

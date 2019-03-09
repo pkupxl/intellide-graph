@@ -1,21 +1,36 @@
 package cn.edu.pku.sei.intellide.graph.webapp;
 
+import cn.edu.pku.sei.intellide.graph.extraction.java.JavaExtractor;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.CodeSearch;
 import cn.edu.pku.sei.intellide.graph.qa.code_trace.CodeAnalyzer;
 import cn.edu.pku.sei.intellide.graph.qa.code_trace.CommitSearch;
+import cn.edu.pku.sei.intellide.graph.qa.code_trace.HistorySearch;
 import cn.edu.pku.sei.intellide.graph.qa.code_trace.IssueSearch;
 import cn.edu.pku.sei.intellide.graph.qa.doc_search.DocSearch;
 import cn.edu.pku.sei.intellide.graph.qa.nl_query.NLQueryEngine;
 import cn.edu.pku.sei.intellide.graph.webapp.entity.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.lucene.queryparser.classic.ParseException;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -23,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +57,7 @@ public class Controller {
     Map<String, GraphDatabaseService> dbMap = new LinkedHashMap<>();
     Map<String, IssueSearch> issueSearchMap  = new LinkedHashMap<>();
     Map<String, CommitSearch> commitSearchMap  = new LinkedHashMap<>();
+    Map<String, Repository> repositoryMap = new LinkedHashMap<>();
 
     CodeSearch codeSearch = null;
     @Autowired
@@ -117,77 +134,61 @@ public class Controller {
     }
 
     @RequestMapping(value = "/issueSearch", method = {RequestMethod.GET, RequestMethod.POST})
-    synchronized public List<Neo4jNode> issueSearch(String query, String project) {
-        System.out.println(query);
-        CodeAnalyzer analyzer=new CodeAnalyzer(query);
-        String className=analyzer.getFullNameFromCode();
-
-    //    String methodName=analyzer.getMethodNameFromCode();
-        System.out.println(className);
+    synchronized public List<Neo4jNode> issueSearch(String query, String project ,String type) {
+        System.out.println(type);
+        CodeAnalyzer analyzer=new CodeAnalyzer(query,type);
         if (!issueSearchMap.containsKey(project)) {
             issueSearchMap.put(project,new IssueSearch(getDb(project)));
         }
         IssueSearch issueSearch = issueSearchMap.get(project);
-
-        return issueSearch.searchIssueNodeByClassName(className);
-  //      return issueSearch.searchIssueNodeByMethodName(methodName);
+        return issueSearch.search(analyzer);
     }
+
+
     @RequestMapping(value = "/commitSearch", method = {RequestMethod.GET, RequestMethod.POST})
-    synchronized public List<CommitResult> commitSearch(String query, String project) {
-
-        System.out.println(query);
-        CodeAnalyzer analyzer=new CodeAnalyzer(query);
-        String className=analyzer.getFullNameFromCode();
-
-    //    String methodName=analyzer.getMethodNameFromCode();
-           System.out.println(className);
+    synchronized public List<CommitResult> commitSearch(String query, String project, String type) {
+        System.out.println(type);
+        CodeAnalyzer analyzer=new CodeAnalyzer(query,type);
         if (!commitSearchMap.containsKey(project)) {
             commitSearchMap.put(project,new CommitSearch(getDb(project)));
         }
         CommitSearch commitSearch = commitSearchMap.get(project);
-
-        return commitSearch.searchCommitResultByClassName(className);
-   //     return commitSearch.searchCommitResultByMethodName(methodName);
+        return commitSearch.search(analyzer);
     }
 
     @RequestMapping(value = "/historySearch", method = {RequestMethod.GET, RequestMethod.POST})
-    synchronized public List<HistoryResult> historySearch(String query, String project) {
-
-        System.out.println(query);
-        CodeAnalyzer analyzer=new CodeAnalyzer(query);
-        String className=analyzer.getFullNameFromCode();
-
-        //    String methodName=analyzer.getMethodNameFromCode();
-        System.out.println(className);
+    synchronized public List<HistoryResult> historySearch(String query, String project, String type) {
+        CodeAnalyzer analyzer=new CodeAnalyzer(query,type);
+        Repository repository = getGitRepository(project);
         if (!commitSearchMap.containsKey(project)) {
             commitSearchMap.put(project,new CommitSearch(getDb(project)));
         }
         CommitSearch commitSearch = commitSearchMap.get(project);
-
-        List<CommitResult> commitResults=commitSearch.searchCommitResultByClassName(className);
-
-        List<HistoryResult>result=new ArrayList<>();
-        String content=query;
-        String preContent="";
-        System.out.println("查找历史.............");
-        for(int i=0;i<commitResults.size();++i){
-            System.out.println("---------------------------");
-            preContent=CommitSearch.Recover(content,commitResults.get(i).getDiffMessage());
-            System.out.println("PreContent");
-            System.out.println(preContent);
-            System.out.println("Content");
-            System.out.println(content);
-            System.out.println("---------------------------");
-            result.add(new HistoryResult(preContent,content,commitResults.get(i).getCommitMessage()));
-            content=preContent;
-        }
-
-        System.out.println("查找历史完毕");
-        return result;
+        HistorySearch historySearch=new HistorySearch(repository,commitSearch);
+        return historySearch.search(analyzer);
     }
 
-
-
+    private Repository getGitRepository(String project) {
+        if(!repositoryMap.containsKey(project)){
+            try{
+                File jsonFile = ResourceUtils.getFile(context.infoDir);
+                String json = FileUtils.readFileToString(jsonFile, "utf-8");
+                JSONArray jsonArray = new JSONArray(json);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jobj = jsonArray.getJSONObject(i);
+                    String name = jobj.getString("name");
+                    if(name.equals(project)){
+                        String gitRepositoryPath = jobj.getString("GitRepositoryPath");
+                        repositoryMap.put(project, new FileRepository(gitRepositoryPath));
+                        break;
+                    }
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        return repositoryMap.get(project);
+    }
 
     private GraphDatabaseService getDb(String project) {
         if (!dbMap.containsKey(project)) {
@@ -196,7 +197,6 @@ public class Controller {
         }
         return dbMap.get(project);
     }
-
 }
 
 @Component
