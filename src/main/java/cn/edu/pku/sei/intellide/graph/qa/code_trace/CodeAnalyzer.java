@@ -37,7 +37,7 @@ public class CodeAnalyzer {
         parser.setSource(this.code.toCharArray());
         parser.setKind(ASTParser.K_CLASS_BODY_DECLARATIONS);
         ASTVisitor methodVisitor=new MethodVisitor();
-        TypeDeclaration unit=(TypeDeclaration)(parser.createAST(null));
+        TypeDeclaration  unit=(TypeDeclaration)(parser.createAST(null));
         unit.accept(methodVisitor);
         return ((MethodVisitor) methodVisitor).getMethodName();
     }
@@ -80,5 +80,8 @@ public class CodeAnalyzer {
             }
             return false;
         }
+    }
+
+    public static void main(String args[]){
     }
 }

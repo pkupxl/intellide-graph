@@ -1,6 +1,5 @@
 package cn.edu.pku.sei.intellide.graph.webapp;
 
-import cn.edu.pku.sei.intellide.graph.extraction.java.JavaExtractor;
 import cn.edu.pku.sei.intellide.graph.qa.code_search.CodeSearch;
 import cn.edu.pku.sei.intellide.graph.qa.code_trace.CodeAnalyzer;
 import cn.edu.pku.sei.intellide.graph.qa.code_trace.CommitSearch;
@@ -13,21 +12,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
-import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.treewalk.TreeWalk;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ResourceUtils;
@@ -35,15 +25,11 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import static cn.edu.pku.sei.intellide.graph.webapp.entity.SnowGraphProject.getProjectList;
 
 @CrossOrigin
@@ -164,7 +150,7 @@ public class Controller {
             commitSearchMap.put(project,new CommitSearch(getDb(project)));
         }
         CommitSearch commitSearch = commitSearchMap.get(project);
-        HistorySearch historySearch=new HistorySearch(repository,commitSearch);
+        HistorySearch historySearch=new HistorySearch(repository,commitSearch,project);
         return historySearch.search(analyzer);
     }
 
@@ -190,7 +176,7 @@ public class Controller {
         return repositoryMap.get(project);
     }
 
-    private GraphDatabaseService getDb(String project) {
+    private GraphDatabaseService getDb(String project){
         if (!dbMap.containsKey(project)) {
             GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(context.graphDir + '/' + project));
             dbMap.put(project, db);

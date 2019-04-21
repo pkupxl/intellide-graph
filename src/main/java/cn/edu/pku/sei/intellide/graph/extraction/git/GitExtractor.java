@@ -253,7 +253,7 @@ public class GitExtractor extends KnowledgeExtractor {
             Ref head = repo.findRef("HEAD");
 
             RevWalk walk = new RevWalk(repo);
-     /*       String branchName = "refs/heads/master";
+            /*       String branchName = "refs/heads/master";
             RevCommit masterHead = walk.parseCommit( repo.resolve( branchName ));
             walk.markStart(masterHead);
 */
@@ -272,8 +272,6 @@ public class GitExtractor extends KnowledgeExtractor {
                 }
             }
        //     System.out.println("commitnum:"+commitnum);
-
-
         /*    List<Ref> call = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call();
             System.out.println("branch number:"+call.size());
             int sum=0;
@@ -290,8 +288,6 @@ public class GitExtractor extends KnowledgeExtractor {
                 sum+=total;
             }
             System.out.println("Sum:"+sum);*/
-
-
 
             /*Ref head = repo.exactRef("refs/heads/master");
             RevCommit masterHead=walk.parseCommit(head.getObjectId());
